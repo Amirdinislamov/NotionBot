@@ -3,14 +3,15 @@ import logging
 
 import betterlogging as bl
 import orjson
-from aiogram import Bot, Dispatcher
+from aiogram import Bot, Dispatcher, types
 from aiogram.client.bot import DefaultBotProperties
 from aiogram.client.session.aiohttp import AiohttpSession
 from aiogram.enums import ParseMode
 from aiogram.fsm.storage.memory import MemoryStorage
 
-from tgbot import handlers
-from tgbot.data import config
+import handlers
+from data import config
+from tgbot.database import initialize_database
 
 
 def setup_logging():
@@ -21,7 +22,7 @@ def setup_logging():
 
 
 def setup_handlers(dp: Dispatcher) -> None:
-    dp.include_router(handlers.setup())
+    dp.include_routers(*handlers.routers_list)
 
 
 def setup_middlewares(dp: Dispatcher) -> None:
@@ -35,6 +36,14 @@ async def setup_aiogram(dp: Dispatcher) -> None:
 
 async def aiogram_on_startup_polling(dispatcher: Dispatcher, bot: Bot) -> None:
     await setup_aiogram(dispatcher)
+
+    # Устанавливаем подсказки команд
+    commands = [
+        types.BotCommand(command="/start", description="Запустить бота"),
+        types.BotCommand(command="/help", description="Получить справку"),
+        # Добавьте другие команды по мере необходимости
+    ]
+    await bot.set_my_commands(commands)
 
 
 async def aiogram_on_shutdown_polling(dispatcher: Dispatcher, bot: Bot) -> None:
@@ -53,7 +62,7 @@ async def main():
         session=session,
         default=DefaultBotProperties(parse_mode=ParseMode.HTML)
     )
-
+    initialize_database()
     storage = MemoryStorage()
 
     dp = Dispatcher(

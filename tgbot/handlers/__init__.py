@@ -1,12 +1,9 @@
-from aiogram import Router
-from aiogram.filters import CommandStart
+from .commands import main_router
 
-from tgbot.handlers.commands import start_command_handler
+# def setup() -> Router:
+#     # router = Router()
+#
+#     return main_router
+routers_list = [main_router]
 
-
-def setup() -> Router:
-    router = Router()
-
-    router.message.register(start_command_handler, CommandStart())
-
-    return router
+__all__ = ['routers_list']
