@@ -29,10 +29,9 @@ venv\Scripts\activate  # Windows
 ### Установите зависимости:
 pip install -r requirements.txt
 ### Настройте переменные окружения:
-Создайте файл .env в корневой директории проекта и добавьте туда ваш токен бота, данные для доступа к Notion API и ID базы данных.
+Создайте файл .env в корневой директории проекта и добавьте туда ваш токен бота. NOTION_API_TOKEN и NOTION_DATABASE_ID садается в самом боте.
 
 BOT_TOKEN="ваш_токен_бота"
-NOTION_API_TOKEN="ваш_токен_API_Notion"
-NOTION_DATABASE_ID="ID_базы_данных_Notion"
+
 ### Запустите бота:
 python main.py

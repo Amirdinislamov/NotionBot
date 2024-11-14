@@ -10,6 +10,7 @@ from tgbot.states.states import LinkStates
 import requests
 from bs4 import BeautifulSoup
 import urllib.parse
+from tgbot.database.users import save_user_token, get_user_token
 from data import config
 
 
@@ -52,10 +53,30 @@ def determine_social_media_source(url):
 @main_router.message(Command("start"))
 async def start_command_handler(message: types.Message, state: FSMContext):
     await state.clear()
+    user_id = message.from_user.id
+    notion_token, notion_database_id = get_user_token(user_id)
 
-    # await message.delete_reply_markup()
-    await message.answer(f"Привет, {message.from_user.full_name}! Отправьте текст с ссылкой, чтобы начать.")
+    if not notion_token or not notion_database_id:
+        await message.answer("Отправьте ваш Notion токен:")
+        await state.set_state(LinkStates.waiting_for_notion_token)
+    else:
+        await message.answer("Привет! Отправьте текст с ссылкой, чтобы начать.")
 
+@main_router.message(LinkStates.waiting_for_notion_token)
+async def handle_notion_token(message: types.Message, state: FSMContext):
+    await state.update_data(notion_token=message.text)
+    await message.answer("Теперь отправьте ваш Notion ID базы данных:")
+    await state.set_state(LinkStates.waiting_for_notion_database_id)
+
+@main_router.message(LinkStates.waiting_for_notion_database_id)
+async def handle_notion_database_id(message: types.Message, state: FSMContext):
+    user_data = await state.get_data()
+    user_id = message.from_user.id
+    notion_token = user_data["notion_token"]
+    notion_database_id = message.text
+    save_user_token(user_id, notion_token, notion_database_id)
+    await message.answer("Настройки сохранены! Теперь отправьте текст с ссылкой для добавления.")
+    await state.clear()
 
 @main_router.message(Command("help"))
 async def help_command_handler(message: types.Message):
@@ -95,6 +116,7 @@ async def handle_source_input(message: types.Message, state: FSMContext):
     user_data = await state.get_data()
     user_id = message.from_user.id
     user_data["source"] = message.text
+    notion_token, notion_database_id = get_user_token(user_id)
     for link in user_data["links"]:
         user_data["source"] = f"Переслали от: {determine_source(message)}. Социальная сеть: {determine_social_media_source(link)}. Ресурс: {message.text}"
         title = fetch_title(link)
@@ -111,6 +133,8 @@ async def handle_source_input(message: types.Message, state: FSMContext):
                  priority=user_data["priority"],
                  source=user_data["source"],
                  telegram_user_id=user_id,
+                 notion_token = notion_token,
+                 notion_database_id = notion_database_id
                  )
 
         log_message = (f"Новая ссылка добавлена:\n"
@@ -122,6 +146,6 @@ async def handle_source_input(message: types.Message, state: FSMContext):
                        f"Telegram User ID: {user_id}")
         await message.bot.send_message(LOG_CHANNEL_ID, log_message)
 
-    # Сообщаем об успешном сохранении
+
     await message.answer("Ссылка(и) сохранена(ы) в базе данных.")
     await state.clear()

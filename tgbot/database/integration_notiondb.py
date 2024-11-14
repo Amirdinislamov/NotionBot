@@ -1,13 +1,10 @@
 from notion_client import Client
-from tgbot.data import config
 
-notion = Client(auth=config.NOTION_TOKEN)
-database_id = config.NOTION_DATABASE_ID
-
-def add_link_to_notion(url, title, category, priority, source, telegram_user_id):
+def add_link_to_notion(url, title, category, priority, source, telegram_user_id, notion_token, notion_database_id):
+    notion = Client(auth=notion_token)
     try:
         response = notion.pages.create(
-            parent={"database_id": database_id},
+            parent={"database_id": notion_database_id},
             properties={
                 "Title": {
                     "title": [
