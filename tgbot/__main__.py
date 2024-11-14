@@ -11,7 +11,7 @@ from aiogram.fsm.storage.memory import MemoryStorage
 
 import handlers
 from data import config
-from tgbot.database import initialize_database
+from tgbot.database.localdb import initialize_database
 
 
 def setup_logging():
