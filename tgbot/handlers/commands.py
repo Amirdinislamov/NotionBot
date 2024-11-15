@@ -29,14 +29,16 @@ def fetch_title(url):
     except requests.RequestException:
         return "Unknown"
 
+
 def determine_source(message: types.Message):
     if message.forward_from:
         source = message.forward_from.username if message.forward_from.username else str(message.forward_from.id)
     elif message.forward_from_chat:
         source = message.forward_from_chat.title or message.forward_from_chat.username
     else:
-        source = "Unknown"
+        source = f"Сообщение от: {message.from_user.username or message.from_user.id}"
     return source
+
 
 def determine_social_media_source(url):
     parsed_url = urllib.parse.urlparse(url)

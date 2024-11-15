@@ -1,34 +1,42 @@
-import sqlite3
+from sqlalchemy import create_engine, Column, Integer, String
+from sqlalchemy.orm import declarative_base, sessionmaker
 
-def init_users_db():
-    conn = sqlite3.connect("users.db")
-    cursor = conn.cursor()
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS users (
-            user_id INTEGER PRIMARY KEY,
-            notion_token TEXT,
-            notion_database_id TEXT
+# Создание движка и базы
+engine = create_engine('sqlite:///users.db')
+Base = declarative_base()
+Session = sessionmaker(bind=engine)
+
+class User(Base):
+    __tablename__ = 'users'
+
+    id = Column(Integer, primary_key=True)
+    telegram_user_id = Column(Integer, unique=True, nullable=False)
+    notion_token = Column(String, nullable=False)
+    notion_database_id = Column(String, nullable=False)
+
+# Создаем таблицы
+Base.metadata.create_all(engine)
+
+# Функция для сохранения токенов
+def save_user_token(telegram_user_id, notion_token, notion_database_id):
+    session = Session()
+    user = session.query(User).filter(User.telegram_user_id == telegram_user_id).first()
+    if user:
+        user.notion_token = notion_token
+        user.notion_database_id = notion_database_id
+    else:
+        user = User(
+            telegram_user_id=telegram_user_id,
+            notion_token=notion_token,
+            notion_database_id=notion_database_id
         )
-    """)
-    conn.commit()
-    conn.close()
+        session.add(user)
+    session.commit()
+    session.close()
 
-def save_user_token(user_id, token, database_id):
-    conn = sqlite3.connect("users.db")
-    cursor = conn.cursor()
-    cursor.execute("""
-        INSERT OR REPLACE INTO users (user_id, notion_token, notion_database_id)
-        VALUES (?, ?, ?)
-    """, (user_id, token, database_id))
-    conn.commit()
-    conn.close()
-
-def get_user_token(user_id):
-    conn = sqlite3.connect("users.db")
-    cursor = conn.cursor()
-    cursor.execute("SELECT notion_token, notion_database_id FROM users WHERE user_id = ?", (user_id,))
-    result = cursor.fetchone()
-    conn.close()
-    return result if result else (None, None)
-
-init_users_db()
+# Функция для получения токенов
+def get_user_token(telegram_user_id):
+    session = Session()
+    user = session.query(User).filter(User.telegram_user_id == telegram_user_id).first()
+    session.close()
+    return (user.notion_token, user.notion_database_id) if user else (None, None)
